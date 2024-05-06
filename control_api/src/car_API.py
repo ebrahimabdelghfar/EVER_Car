@@ -58,10 +58,10 @@ class ControlCar():
 
 if __name__ == "__main__":
 
-    test = ControlCar()
+    matgr = ControlCar()
 
     while not rospy.is_shutdown():
-        print(f"steering angle = {test.collectSteeringAngle()}")
+        print(f"steering angle = {matgr.collectSteeringAngle()} degree, velocity = {matgr.speed_car} km/h")
 
     
     
