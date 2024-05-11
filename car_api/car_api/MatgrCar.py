@@ -5,27 +5,17 @@ import serial
 import struct
 
 class MatgrCar(Node):
-    def __init__(self):
-        # super().__init__('MatgrCar')
+    def __init__(self,NODE_NAME = "MatgrCar",PORT:str = '/dev/ttyUSB1', BAUDRATE:int = 5000000):
+        super().__init__(NODE_NAME)
         #connect to the car
-        self.ser = serial.Serial('/dev/ttyUSB0', 5000000)
-        # self.publisher_ = self.create_subscription(AckermannDrive, '/matgrCarController',self.moveCar, 10)
-        # self.create_timer(0.1, self.readSteeringAngle)
+        self.ser = serial.Serial(PORT, BAUDRATE)
 
-    def collectSteeringAngle(self) -> float:
-        """
-        Parameters:
-        -----------
-            None
-        returns:
-        --------
-            steering angle in degree
-        """
-        num_elements = 8
-        response = self.ser.read(num_elements*4) # Read 4 bytes per element (assuming 32-bit float)
-        if response:
-            vector_data = list(struct.unpack('<' + 'f'*num_elements, response)) # Convert bytes to vector
-        return vector_data[1]
+        self.publisher_ = self.create_subscription(msg_type = AckermannDrive,
+                                                   topic = '/matgrCarController',
+                                                   callback = self.moveCar,
+                                                   qos_profile = 10)
+        
+        self.create_timer(timer_period_sec = 0.1, callback = self.readSteeringAngle)
     
     def sendCommandTocar(self,steering:float = 0.0 , velocity:float = 0.0):
         """
@@ -47,9 +37,9 @@ class MatgrCar(Node):
         
         # those conditions was declared as the angle between 10 and 13 degree is not stable
         if steering <= 13 and steering >= 10:
-            steering = 18 # the 18 was chosen as to skip the range between 10 and 13 degree quikly due to the effect of P 
+            steering = 15 # the 15 was chosen as to skip the range between 10 and 13 degree quikly due to the effect of P 
         elif steering >= -13 and steering <= -10:
-            steering = -18
+            steering = -15
 
         vector_data = [velocity, steering]  # [velocity, steering]
         num_elements = len(vector_data)
@@ -61,7 +51,6 @@ class MatgrCar(Node):
         self.get_logger().info('Steering angle: "%s"' % steering_angle)
 
     def moveCar(self, msg: AckermannDrive):
-        self.get_logger().info('Publishing: "%s"' % msg)
         #m/sec to km/h
         msg.speed = msg.speed * 3.6
         self.sendCommandTocar(steering=msg.steering_angle, velocity=msg.speed)
